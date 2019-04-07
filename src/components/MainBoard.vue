@@ -379,8 +379,10 @@ export default {
   border: solid;
   background: linear-gradient(to right, red, purple);
   border-width: 0 3px 3px 0;
-  padding: 5px;
+  padding: 5px 15px;
   box-shadow: 1px 1px 15px 2px #040404;
+  z-index: 20;
+  max-width: 440px;
   .info {
     text-align: left;
     margin-right: 18px;
@@ -389,6 +391,7 @@ export default {
   }
   .score {
     font-weight: bold;
+    text-align: center;
   }
   .buttons {
     display: flex;
@@ -396,6 +399,9 @@ export default {
     margin-right: 18px;
     padding-right: 18px;
     border-right: solid 1px;
+    flex: 1 0 180px;
+    flex-wrap: wrap;
+    justify-content: center;
     .btn-draw {
       background-color: #3079e8;
       box-shadow: 1px 1px 5px 0px #484343, inset -1px 0px 6px 0px #1f4886;
