@@ -69,7 +69,7 @@ export default new Vuex.Store({
   actions: {
     getDeck({ commit }) {
       return new Promise((resolve, reject) => {
-        axios.get('new/shuffle?deck_count=1').then(({ data }) => {
+        axios.get('new/shuffle/?deck_count=1').then(({ data }) => {
           if (data) {
             commit('setDeckId', data.deck_id)
             commit('setRemaining', data.remaining)
@@ -80,7 +80,7 @@ export default new Vuex.Store({
     },
     shuffleDeck({ commit, getters }) {
       return new Promise((resolve, reject) => {
-        axios.get(`${getters.deckId}/shuffle`).then(({ data }) => {
+        axios.get(`${getters.deckId}/shuffle/`).then(({ data }) => {
           if (data) {
             commit('setRemaining', data.remaining)
             resolve(data)

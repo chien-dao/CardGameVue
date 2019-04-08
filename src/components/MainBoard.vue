@@ -11,7 +11,7 @@
       :cards="playersCards(0)"
       :earned="provideScore('player1')"
       :round="round"
-      :reveal="reveal"
+      :reveal="revealCards"
     />
     <Player
       :customStyle="{
@@ -24,7 +24,7 @@
       :cards="playersCards(1)"
       :earned="provideScore('player2')"
       :round="round"
-      :reveal="reveal"
+      :reveal="revealCards"
     />
     <Player
       :customStyle="{
@@ -37,7 +37,7 @@
       :cards="playersCards(3)"
       :earned="provideScore('player3')"
       :round="round"
-      :reveal="reveal"
+      :reveal="revealCards"
     />
     <div class="players-score-board">
       <div class="info">
@@ -46,11 +46,11 @@
       </div>
       <div class="buttons">
         <button class="btn-shuffle" @click="shuffleDeck">Shuffle</button>
-        <button class="btn-draw" @click="dealCards" :disabled="!reveal">Draw</button>
-        <button class="btn-reveal" @click="revealAllCards" :disabled="gettingData">Reveal</button>
-        <button class="btn-recap" @click="getGamesResult" :disabled="!(gameRound === 5)">Recap</button>
+        <button class="btn-draw" @click="dealCards" :disabled="!revealCards">Draw</button>
+        <button class="btn-reveal" @click="revealAllCards" :disabled="isGettingData">Reveal</button>
+        <button class="btn-recap" @click="getGamesResult">Recap</button>
       </div>
-      <h2 class="round">Round {{ gameRound }}</h2>
+      <h2 class="round">Round {{ gameRound ? gameRound : '-' }}</h2>
     </div>
     <div class="main-player">
       <div class="main-player__info">
@@ -73,19 +73,21 @@
       <div class="recap-container">
         <div v-for="game in Object.keys(this.currentRecap)" :key="game" class="recap" @click.stop>
           <h3 class="game-name">{{ game }}</h3>
-          <div v-for="(round, index) in currentRecap[game]" :key="`round-${index}`" class="recap__info">
-            <h4 class="round-name">Round {{ index + 1 }}</h4>
-            <div class="info-container">
-              <div v-for="player in round" :key="player.player" class="recap__players">
-                <h4>{{ player.player }}</h4>
-                <p>{{ Number.isFinite(player.score) ? player.score : 'Win this round' }}</p>
-                <p>{{ player.totalScore }}</p>
+          <template v-for="(round, index) in currentRecap[game]">
+            <div v-if="gameRound !== (index + 1) || revealCards" class="recap__info" :key="`round-${index}`">
+              <h4 class="round-name">Round {{ index + 1 }}</h4>
+              <div class="info-container">
+                <div v-for="player in round" :key="player.player" class="recap__players">
+                  <h4>{{ player.player }}</h4>
+                  <p>{{ Number.isFinite(player.score) ? player.score : 'Win this round' }}</p>
+                  <p>{{ player.totalScore }}</p>
+                </div>
               </div>
             </div>
-          </div>
+          </template>
           <div class="recap__winners">
             <h3 class="winners-title">{{ currentRecap[game].length === 5 ? winners.length > 1 ? 'Winners' : 'Winner' : winners.length > 1 ? 'Lead players' : 'Lead player' }}</h3>
-            <div class="winners-container">
+            <div class="winners-container" >
               <div v-for="winner in winners" :key="winner.player" class="winner">
                 <h2>{{ winner.player }} - {{ winner.totalScore }}</h2>
               </div>
@@ -126,7 +128,8 @@ export default {
       isShowRecap: false,
       isShowWinner: false,
       isGettingData: false,
-      winners: []
+      winners: [],
+      run: 0
     }
   },
   created: async function() {
@@ -135,6 +138,8 @@ export default {
   },
   mounted() {
     this.setGame()
+  },
+  updated() {
     this.cards.forEach((card, index) => {
       card.style.transform = `translate(-${0.25 * index}px, -${0.25 * index}px)`
     })
@@ -148,20 +153,7 @@ export default {
       return this.$refs.cards
     },
     ownedCards() {
-      const ownedCard = this.playersCards(2)
-      if (ownedCard.length) {
-        const totalScore = ownedCard.reduce((total, current) => {
-          this.spliceRoyalSet(current.value)
-          const parsedValue = specialValue[current.value] ? specialValue[current.value] : +current.value
-          return total + parsedValue
-        }, 0)
-        const isInstanceWin = this.royalSet.length > 0 ? false : true
-        this.setScore({
-          player: 'player',
-          score: isInstanceWin ? Number.POSITIVE_INFINITY : totalScore % 10
-        })
-      }
-      return ownedCard
+      return this.playersCards(2)
     },
     ownedScore() {
       return this.score.player === Number.POSITIVE_INFINITY ? 'Win this round' : this.score.player
@@ -172,11 +164,23 @@ export default {
     round() {
       return `round-${this.gameRound}`
     },
-    reveal() {
-      return this.revealCards
-    },
-    gettingData() {
-      return this.isGettingData
+  },
+  watch: {
+    ownedCards(newVal, oldVal) {
+      if (!(JSON.stringify(newVal) === JSON.stringify(oldVal))) {
+        if (newVal.length) {
+          const totalScore = newVal.reduce((total, current) => {
+            this.spliceRoyalSet(current.value)
+            const parsedValue = specialValue[current.value] ? specialValue[current.value] : +current.value
+            return total + parsedValue
+          }, 0)
+          const isInstanceWin = this.royalSet.length > 0 ? false : true
+          this.setScore({
+            player: 'player',
+            score: isInstanceWin ? Number.POSITIVE_INFINITY : totalScore % 10
+          })
+        }
+      }
     },
   },
   methods: {
@@ -327,6 +331,9 @@ export default {
       const lastGames = this.currentRecap[this.currentGame][this.currentRecap[this.currentGame].length - 1]
       const highestScore = Math.max.apply(Math, lastGames.map(player => player.totalScore))
       this.winners = lastGames.filter(player => player.totalScore === highestScore)
+      if (!this.revealCards) {
+        this.winners.pop()
+      }
     },
     spliceRoyalSet(name) {
       const index = this.royalSet.indexOf(name)
@@ -362,6 +369,8 @@ export default {
   position: relative;
   width: 125px;
   height: 176px;
+  border-radius: 10px;
+  box-shadow: 0px 0 15px 2px #000;
   .card-back {
     position: absolute;
     top: 0;
@@ -459,8 +468,11 @@ export default {
 .main-player__cards,
 .player__cards {
   display: flex;
+  position: relative;
   .card-img {
+    position: relative;
     width: 110px;
+    height: 156px;
     transition: transform .5s;
     z-index: 1;
     &:first-child {

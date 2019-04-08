@@ -7,16 +7,10 @@
     <p class="player__score">{{ playerScore }}</p>
     <p class="player__score">{{ playerTotalScore }}</p>
     <div class="player__cards">
-      <template v-if="reveal">
-        <div v-for="card in cards" :key="card.code" class="card-img">
-          <img :src="card.image" alt="">
-        </div>
-      </template>
-      <template v-else>
-        <div v-for="card in cards" :key="card.code" class="card-img">
-          <img src="../assets/cards-back.png" alt="">
-        </div>
-      </template>
+      <div v-for="card in cards" :key="card.code" class="card-img" :class="{ 'reveal': reveal }">
+        <img class="front face" src="../assets/cards-back.png" alt="">
+        <img class="back face" :src="card.image" alt="">
+      </div>
     </div>
   </div>
 </template>
@@ -55,7 +49,8 @@ export default {
   },
   data() {
     return {
-      royalSet: ['JACK', 'QUEEN', 'KING']
+      royalSet: ['JACK', 'QUEEN', 'KING'],
+      run: 0
     }
   },
   computed: {
@@ -72,18 +67,20 @@ export default {
     }
   },
   watch: {
-    cards() {
-      if (this.cards.length) {
-        const totalScore = this.cards.reduce((total, current) => {
-          this.spliceRoyalSet(current.value)
-          const parsedValue = specialValue[current.value] ? specialValue[current.value] : +current.value
-          return total + parsedValue
-        }, 0)
-        const isInstanceWin = this.royalSet.length > 0 ? false : true
-        this.setScore({
-          player: this.player,
-          score: isInstanceWin ? Number.POSITIVE_INFINITY : totalScore % 10
-        })
+    cards(newVal, oldVal) {
+      if (!(JSON.stringify(newVal) === JSON.stringify(oldVal))) {
+        if (this.cards.length) {
+          const totalScore = this.cards.reduce((total, current) => {
+            this.spliceRoyalSet(current.value)
+            const parsedValue = specialValue[current.value] ? specialValue[current.value] : +current.value
+            return total + parsedValue
+          }, 0)
+          const isInstanceWin = this.royalSet.length > 0 ? false : true
+          this.setScore({
+            player: this.player,
+            score: isInstanceWin ? Number.POSITIVE_INFINITY : totalScore % 10
+          })
+        }
       }
     },
     reveal() {
@@ -129,6 +126,29 @@ export default {
   }
   &__score {
     font-weight: bold;
+  }
+  .card-img {
+    transform-style: preserve-3d;
+    .face {
+      backface-visibility: hidden;
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+    }
+    .back {
+      transform: rotateY(180deg);
+    }
+    &.reveal {
+      transform: rotateY(180deg);
+      &:first-child {
+        transform: rotateY(180deg);
+      }
+      &:last-child {
+        transform: rotateY(180deg);
+      }
+    }
   }
 }
 </style>
