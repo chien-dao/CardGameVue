@@ -1,5 +1,5 @@
 <template>
-  <div class="background">
+  <div class="background" :style="{'background-image': `url(${require('../assets/background.png')})`}">
     <Player
       :customStyle="{
         top: 0,
@@ -71,29 +71,31 @@
     </div>
     <div class="fade" v-if="isShowRecap" @click="hideRecap">
       <div class="recap-container">
-        <div v-for="game in Object.keys(this.currentRecap)" :key="game" class="recap" @click.stop>
-          <h3 class="game-name">{{ game }}</h3>
-          <template v-for="(round, index) in currentRecap[game]">
-            <div v-if="gameRound !== (index + 1) || revealCards" class="recap__info" :key="`round-${index}`">
-              <h4 class="round-name">Round {{ index + 1 }}</h4>
-              <div class="info-container">
-                <div v-for="player in round" :key="player.player" class="recap__players">
-                  <h4>{{ player.player }}</h4>
-                  <p>{{ Number.isFinite(player.score) ? player.score : 'Win this round' }}</p>
-                  <p>{{ player.totalScore }}</p>
+        <template v-for="game in Object.keys(this.currentRecap)">
+          <div v-if="currentRecap[game].length" :key="game" class="recap" @click.stop>
+            <h3 class="game-name">{{ game }}</h3>
+            <template v-for="(round, index) in currentRecap[game]">
+              <div v-if="gameRound !== (index + 1) || revealCards" class="recap__info" :key="`round-${index}`">
+                <h4 class="round-name">Round {{ index + 1 }}</h4>
+                <div class="info-container">
+                  <div v-for="player in round" :key="player.player" class="recap__players">
+                    <h4>{{ player.player }}</h4>
+                    <p>{{ Number.isFinite(player.score) ? player.score : 'Win this round' }}</p>
+                    <p>{{ player.totalScore }}</p>
+                  </div>
+                </div>
+              </div>
+            </template>
+            <div class="recap__winners">
+              <h3 class="winners-title">{{ currentRecap[game].length === 5 ? winners.length > 1 ? 'Winners' : 'Winner' : winners.length > 1 ? 'Lead players' : 'Lead player' }}</h3>
+              <div class="winners-container" >
+                <div v-for="winner in winners[game]" :key="winner.player" class="winner">
+                  <h2>{{ winner.player }} - {{ winner.totalScore }}</h2>
                 </div>
               </div>
             </div>
-          </template>
-          <div class="recap__winners">
-            <h3 class="winners-title">{{ currentRecap[game].length === 5 ? winners.length > 1 ? 'Winners' : 'Winner' : winners.length > 1 ? 'Lead players' : 'Lead player' }}</h3>
-            <div class="winners-container" >
-              <div v-for="winner in winners" :key="winner.player" class="winner">
-                <h2>{{ winner.player }} - {{ winner.totalScore }}</h2>
-              </div>
-            </div>
           </div>
-        </div>
+        </template>
       </div>
     </div>
   </div>
@@ -128,8 +130,8 @@ export default {
       isShowRecap: false,
       isShowWinner: false,
       isGettingData: false,
-      winners: [],
-      run: 0
+      winners: {},
+      isGameReseted: false
     }
   },
   created: async function() {
@@ -182,6 +184,16 @@ export default {
         }
       }
     },
+    revealCards(val) {
+      if (val) {
+        this.setMainPlayerTotalScore(this.provideScore('player'))
+      }
+    },
+    isGameReseted(newVal, oldVal) {
+      if (!newVal && oldVal) {
+        this.resetTotalScore()
+      }
+    }
   },
   methods: {
     ...mapActions(['getDeck', 'getListCard', 'shuffleDeck']),
@@ -201,6 +213,9 @@ export default {
       this.revealCards = false
       this.isGettingData = true
       this.resetRoyalSet()
+      if (this.isGameReseted) {
+        this.isGameReseted = false
+      }
       if (this.remaining < 12) {
         await this.shuffleDeck()
       }
@@ -212,13 +227,12 @@ export default {
     },
     revealAllCards() {
       this.revealCards = true
-      this.setMainPlayerTotalScore(this.provideScore('player'))
       if (this.gameRound === 5) {
         this.getGamesResult()
         this.setGame()
         this.gameRound = 0
         this.shuffleDeck()
-        this.resetTotalScore()
+        this.isGameReseted = true
       }
     },
     setResults() {
@@ -328,11 +342,13 @@ export default {
     getGamesResult() {
       this.isShowRecap = true
       this.currentRecap[this.currentGame] = this.recap[this.currentGame]
-      const lastGames = this.currentRecap[this.currentGame][this.currentRecap[this.currentGame].length - 1]
-      const highestScore = Math.max.apply(Math, lastGames.map(player => player.totalScore))
-      this.winners = lastGames.filter(player => player.totalScore === highestScore)
+      let lastGames = this.currentRecap[this.currentGame][this.currentRecap[this.currentGame].length - 1]
       if (!this.revealCards) {
-        this.winners.pop()
+        lastGames = this.currentRecap[this.currentGame][this.currentRecap[this.currentGame].length - 2]
+      }
+      if (lastGames) {
+        const highestScore = Math.max.apply(Math, lastGames.map(player => player.totalScore))
+        this.winners[this.currentGame] = lastGames.filter(player => player.totalScore === highestScore)
       }
     },
     spliceRoyalSet(name) {
@@ -353,7 +369,7 @@ export default {
 .background {
   position: relative;
   height: 100%;
-  background-image: url(../assets/background.png);
+  // background-image: url(~@/assets/background.png);
   background-repeat: no-repeat;
   background-size: cover;
   background-position: center;
