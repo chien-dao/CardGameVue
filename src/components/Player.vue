@@ -17,8 +17,14 @@
 
 <script>
 import { mapState, mapMutations } from 'vuex'
-import { specialValue } from './MainBoard'
+// import { specialValue } from './MainBoard'
 
+const specialValue = {
+  ACE: 1,
+  JACK: 10,
+  QUEEN: 10,
+  KING: 10
+}
 export default {
   name: 'Player',
   props: {
