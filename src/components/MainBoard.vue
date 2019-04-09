@@ -1,5 +1,5 @@
 <template>
-  <div class="background" :style="{'background-image': `url(${require('../assets/background.png')})`}">
+  <div class="background">
     <Player
       :customStyle="{
         top: 0,
@@ -369,7 +369,7 @@ export default {
 .background {
   position: relative;
   height: 100%;
-  // background-image: url(~@/assets/background.png);
+  background-image: url(~@/assets/background.png);
   background-repeat: no-repeat;
   background-size: cover;
   background-position: center;
